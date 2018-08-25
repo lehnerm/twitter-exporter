@@ -5,7 +5,7 @@ name := "twitter-exporter"
 version := "0.0.1"
 
 scalaVersion := "2.12.6"
-val akkaVersion := "10.1.4"
+val akkaVersion = "10.1.4"
 
 libraryDependencies ++= Seq(
   "org.json4s" %% "json4s-jackson" % "3.6.0",

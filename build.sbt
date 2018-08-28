@@ -11,7 +11,14 @@ libraryDependencies ++= Seq(
   "org.json4s" %% "json4s-jackson" % "3.6.0",
   "com.typesafe.akka" %% "akka-http" % akkaVersion,
   "de.heikoseeberger" %% "akka-http-json4s" % "1.21.0",
-  "com.github.scopt" %% "scopt" % "3.7.0"
+  "com.github.scopt" %% "scopt" % "3.7.0",
+  "com.danielasfregola" %% "twitter4s" % "5.5",
+  "com.typesafe.slick" %% "slick" % "3.2.3",
+  "com.typesafe.akka" %% "akka-slf4j" % "2.5.15",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
+  "ch.qos.logback" % "logback-classic" % "1.2.3",
+  "com.h2database" % "h2" % "1.4.197",
+  "org.postgresql" % "postgresql" % "9.4-1201-jdbc41"
 )
 
 val testDependencies = Seq(
@@ -67,5 +74,4 @@ scalacOptions ++= Seq(
   "-Ywarn-unused:params",              // Warn if a value parameter is unused.
   "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
   "-Ywarn-unused:privates",            // Warn if a private member is unused.
-  "-Ywarn-value-discard"               // Warn when non-Unit expression results are unused.
 )

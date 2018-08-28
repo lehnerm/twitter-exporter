@@ -8,30 +8,14 @@ class ArgumentParserTest extends WordSpec with Matchers {
     "return a valid configuration" in {
       val args = Array(
         "-h", "HANDLE",
-        "--twitter-consumer-key", "TW_CK",
-        "--twitter-consumer-secret", "TW_CS",
-        "--twitter-access-token", "TW_AT",
-        "--twitter-access-token-secret", "TW_ATS",
-        "--database-url", "DB_URL",
-        "--database-username", "DB_USERNAME",
-        "--database-password", "DB_PASSWORD",
+        "-n", "22",
       )
 
       val config = ArgumentParser.parse(args)
 
       config shouldEqual Some(Config(
         "HANDLE",
-        DBConfig(
-          "DB_URL",
-          "DB_USERNAME",
-          "DB_PASSWORD",
-        ),
-        TwitterCredentials(
-          "TW_CK",
-          "TW_CS",
-          "TW_AT",
-          "TW_ATS",
-        ),
+        22,
       ))
     }
 

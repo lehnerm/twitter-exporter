@@ -4,19 +4,18 @@ import akka.actor.ActorSystem
 import com.danielasfregola.twitter4s.TwitterRestClient
 import com.danielasfregola.twitter4s.exceptions.TwitterException
 import com.typesafe.scalalogging.LazyLogging
-import io.martinlehner.twitterexporter.twitter.{TweetExtracter, TweetRepository}
-import io.martinlehner.twitterexporter.cli.ArgumentParser
+import io.martinlehner.twitterexporter.twitter.{TweetMapping, TweetRepository, UserMapping, UserRepository}
+import io.martinlehner.twitterexporter.cli.{ArgumentParser, Config}
 import slick.basic.DatabaseConfig
-import slick.jdbc.PostgresProfile
+import slick.jdbc.{JdbcProfile, PostgresProfile}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
 object Main extends LazyLogging {
-
   val userError = 400
   val systemError = 500
   val ok = 0
@@ -31,50 +30,72 @@ object Main extends LazyLogging {
     }
 
     try {
+      val dbConfig = DatabaseConfig.forConfig[PostgresProfile]("postgres")
       val tweetRepository = new TweetRepository[PostgresProfile](
-        DatabaseConfig.forConfig("postgres")
+        dbConfig,
       )
 
+      val userRepository = new UserRepository[PostgresProfile](
+        dbConfig,
+      )
+
+      val twitterClient = TwitterRestClient.withActorSystem(system)
+
       maybeConfig.foreach(config => {
-        val twitterClient = TwitterRestClient.withActorSystem(system)
-
-        if (config.twitterUser.isEmpty) {
-          logger.error(s"No twitter user to export specified. Use --user <value> to specify a user.")
-          exit(userError)
-        }
-
-        logger.info(s"Fetching tweets for ${config.twitterUser} ...")
-
-        val tweets_> = twitterClient.userTimelineForUser(config.twitterUser, count = config.numTweets)
-          .flatMap(result => {
-            val tweets = result.data
-
-            logger.info(s"Fetched ${tweets.length} tweets for ${config.twitterUser}. Storing in Database ...")
-            val dbTweets = tweets.map(TweetExtracter.from)
-            tweetRepository.createOrUpdateAll(dbTweets)
-          })
-
-        val exitCode_> = tweets_>.transform(result => result match {
-          case Success(value) =>
-            logger.info(s"Successfully inserted $value tweets into the database.")
-            Success(ok)
-
-          case Failure(t: TwitterException) =>
-            logger.error(s"Twitter error while retrieving tweets: ${t.code} ${t.errors}")
-            Success(userError)
-
-          case Failure(t: Throwable) =>
-            logger.error(s"Failure while retrieving tweets", t)
-            Success(systemError)
-        })
-
-        val exitCode = Await.result(exitCode_>, 10.seconds)
-        exit(exitCode)
+        flow(config, twitterClient, tweetRepository, userRepository)
       })
     } catch {
       case NonFatal(e) =>
         logger.error(s"Application failed to initialize", e)
         exit(systemError)
+    }
+  }
+
+  def flow[T <: JdbcProfile](config: Config,
+                             twitterClient: TwitterRestClient,
+                             tweetRepository: TweetRepository[T],
+                             userRepository: UserRepository[T]): Future[Int] = {
+
+    if (config.twitterUser.isEmpty) {
+      logger.error(s"No twitter user to export specified. Use --user <value> to specify a user.")
+      Future.successful(userError)
+    } else {
+      logger.info(s"Fetching tweets for ${config.twitterUser} ...")
+      val tweets_> = twitterClient.userTimelineForUser(config.twitterUser, count = config.numTweets)
+        .flatMap(result => {
+          val tweets = result.data
+
+          logger.info(s"Fetched ${tweets.length} tweets for ${config.twitterUser}. Storing in Database ...")
+          val tweetUsers = for {
+            tweet <- tweets
+            user <- UserMapping.from(tweet)
+          } yield user
+
+          val maybeUser_> = tweetUsers.headOption.map(
+            user => userRepository.create(user)
+          )
+
+          val dbTweets = tweets.map(TweetMapping.from)
+
+          for {
+            _ <- maybeUser_>.getOrElse(Future.successful(0))
+            tweetInserResult <- tweetRepository.createOrUpdateAll(dbTweets)
+          } yield tweetInserResult
+        })
+
+      tweets_>.transform(result => result match {
+        case Success(value) =>
+          logger.info(s"Successfully inserted $value tweets into the database.")
+          Success(ok)
+
+        case Failure(t: TwitterException) =>
+          logger.error(s"Twitter error while retrieving tweets: ${t.code} ${t.errors}")
+          Success(userError)
+
+        case Failure(t: Throwable) =>
+          logger.error(s"Failure while retrieving tweets", t)
+          Success(systemError)
+      })
     }
   }
 }

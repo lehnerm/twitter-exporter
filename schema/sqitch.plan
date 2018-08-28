@@ -3,3 +3,6 @@
 
 appschema 2018-08-28T12:30:35Z Martin Lehner <lehner.m.e@gmail.com> # Initial data model
 alter_table 2018-08-28T13:34:27Z Martin Lehner <lehner.m.e@gmail.com> # Add created_at field
+create_hashtag_table 2018-08-28T17:53:20Z Martin Lehner <lehner.m.e@gmail.com> # Add hashtag table
+create_users_table 2018-08-28T18:37:19Z Martin Lehner <lehner.m.e@gmail.com> # Add users table
+add_userid_column 2018-08-28T18:40:47Z Martin Lehner <lehner.m.e@gmail.com> # Add userid column to tweets table

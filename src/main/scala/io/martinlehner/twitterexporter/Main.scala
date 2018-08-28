@@ -42,7 +42,11 @@ object Main extends LazyLogging {
       val twitterClient = TwitterRestClient.withActorSystem(system)
 
       maybeConfig.foreach(config => {
-        flow(config, twitterClient, tweetRepository, userRepository)
+        val exitCode = Await.result(
+          flow(config, twitterClient, tweetRepository, userRepository), 10.seconds
+        )
+
+        exit(exitCode)
       })
     } catch {
       case NonFatal(e) =>

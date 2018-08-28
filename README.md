@@ -35,9 +35,16 @@ TWEX_DB_USERNAME: Database user
 TWEX_DB_PASSWORD: Database password
 ```
 
-### Exporting tweets for a user
+### Build & Installation
+To build the debian package (other OS not supported atm ...), simply run
+`sbt debian:packageBin` which will bundle the app up. The resulting package can then
+be found in the build directory: `target/twitter-exporter_1.0.0_all.deb`.
 
-Run `sbt run --twitter-handle $TWITTER_HANDLE`
+Install with `dpkg -i target/twitter-exporter_1.0.0_all.deb` and enjoy the new `twitter-exporter`
+command!
+
+### Exporting tweets for a user
+Either install via deb package or run directly via sbt with `sbt run --twitter-handle $TWITTER_HANDLE`
 
 ## Testing
 Bring up the test postgres with `docker-compose up`. At 

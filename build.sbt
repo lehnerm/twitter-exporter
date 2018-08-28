@@ -1,8 +1,11 @@
+import sbt.Keys._
 import sbt._
 
-organization := "io.martin-lehner"
+enablePlugins(JavaAppPackaging)
+
+organization := "io.martinlehner"
 name := "twitter-exporter"
-version := "0.0.1"
+version := "1.0.0"
 
 scalaVersion := "2.12.6"
 val akkaVersion = "10.1.4"
@@ -28,6 +31,11 @@ val testDependencies = Seq(
 )
 
 libraryDependencies ++= testDependencies.map(_ % "test")
+
+maintainer := "Max Smith <max.smith@yourcompany.io>"
+packageSummary := "Hello World Debian Package"
+packageDescription := """A fun package description of our software,
+  with multiple lines."""
 
 scalacOptions ++= Seq(
   "-deprecation",                      // Emit warning and location for usages of deprecated APIs.

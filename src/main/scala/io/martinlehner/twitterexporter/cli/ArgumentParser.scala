@@ -10,7 +10,7 @@ object ArgumentParser {
     )
 
     note("Export configuration:")
-    opt[String]('h', "twitter-handle").action((value, config) =>
+    opt[String]('u', "twitter-handle").action((value, config) =>
       config.copy(twitterHandle = value)).text("Twitter handle to export the latest tweets from")
     opt[Int]('n', "num-tweets").action((value, config) =>
       config.copy(numTweets = value)).text("Retrieve up this amount of the users latest tweets")

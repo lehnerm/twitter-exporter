@@ -7,7 +7,7 @@ class ArgumentParserTest extends WordSpec with Matchers {
   "parsing arguments" should {
     "return a valid configuration" in {
       val args = Array(
-        "-h", "HANDLE",
+        "--twitter-handle", "HANDLE",
         "-n", "22",
       )
 

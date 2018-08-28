@@ -1,0 +1,5 @@
+%syntax-version=1.0.0
+%project=twitterexporter
+
+appschema 2018-08-28T12:30:35Z Martin Lehner <lehner.m.e@gmail.com> # Initial data model
+alter_table 2018-08-28T13:34:27Z Martin Lehner <lehner.m.e@gmail.com> # Add created_at field

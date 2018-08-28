@@ -1,6 +1,6 @@
 package io.martinlehner.twitterexporter.cli
 
 case class Config(
-  twitterHandle: String = "",
+  twitterUser: String = "",
   numTweets: Int = 5,
 )

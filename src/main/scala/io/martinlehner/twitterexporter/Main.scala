@@ -12,13 +12,23 @@ import slick.jdbc.PostgresProfile
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
 object Main extends LazyLogging {
 
+  val userError = 400
+  val systemError = 500
+  val ok = 0
+
   def main(args: Array[String]): Unit = {
     val maybeConfig = ArgumentParser.parse(args)
     implicit val system: ActorSystem = ActorSystem("twitter-exporter")
+
+    def exit(code: Int) = {
+      Await.ready(system.terminate(), 10.seconds)
+      sys.exit(code)
+    }
 
     try {
       val tweetRepository = new TweetRepository[PostgresProfile](
@@ -28,12 +38,18 @@ object Main extends LazyLogging {
       maybeConfig.foreach(config => {
         val twitterClient = TwitterRestClient.withActorSystem(system)
 
-        logger.info(s"Fetching tweets for ${config.twitterHandle} ...")
-        val tweets_> = twitterClient.userTimelineForUser(config.twitterHandle, count = config.numTweets)
+        if (config.twitterUser.isEmpty) {
+          logger.error(s"No twitter user to export specified. Use --user <value> to specify a user.")
+          exit(userError)
+        }
+
+        logger.info(s"Fetching tweets for ${config.twitterUser} ...")
+
+        val tweets_> = twitterClient.userTimelineForUser(config.twitterUser, count = config.numTweets)
           .flatMap(result => {
             val tweets = result.data
 
-            logger.info(s"Fetched ${tweets.length} tweets for ${config.twitterHandle}. Storing in Database ...")
+            logger.info(s"Fetched ${tweets.length} tweets for ${config.twitterUser}. Storing in Database ...")
             val dbTweets = tweets.map(TweetExtracter.from)
             tweetRepository.createOrUpdateAll(dbTweets)
           })
@@ -41,22 +57,24 @@ object Main extends LazyLogging {
         val exitCode_> = tweets_>.transform(result => result match {
           case Success(value) =>
             logger.info(s"Successfully inserted $value tweets into the database.")
-            Success(0)
+            Success(ok)
 
           case Failure(t: TwitterException) =>
             logger.error(s"Twitter error while retrieving tweets: ${t.code} ${t.errors}")
-            Success(400)
+            Success(userError)
 
           case Failure(t: Throwable) =>
-            logger.error(s"General failure while retrieving tweets", t)
-            Success(500)
+            logger.error(s"Failure while retrieving tweets", t)
+            Success(systemError)
         })
 
         val exitCode = Await.result(exitCode_>, 10.seconds)
-        sys.exit(exitCode)
+        exit(exitCode)
       })
-    } finally {
-      Await.ready(system.terminate(), 10.seconds)
+    } catch {
+      case NonFatal(e) =>
+        logger.error(s"Application failed to initialize", e)
+        exit(systemError)
     }
   }
 }
